@@ -1,5 +1,8 @@
 ---
-title: 关于
+title: 关于 | About
+date: 2025-09-13
+readingTime: true
+slug: "about"
 menu:
     main: 
         weight: -90
@@ -7,4 +10,4 @@ menu:
             icon: user
 ---
 
-This is a test page for i18n support.
+这是一个学习向博客，记录我的学习历程并分享笔记。  
