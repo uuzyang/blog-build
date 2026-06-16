@@ -1,0 +1,62 @@
+{{- $image := partialCached "helper/image" (dict "Context" . "Type" "articleList") .RelPermalink "articleList" -}}
+{{- $fallback := partial "helper/random-fallback-image" (dict "Context" . "Folder" "background") -}}
+
+<article class="home-article-card{{ if or $image.exists $fallback }} has-image{{ end }}">
+    {{ if or $image.exists $fallback }}
+        <a class="home-article-card__image" href="{{ .RelPermalink }}" aria-label="{{ .Title }}">
+            {{ if $image.exists }}
+                {{ if $image.resource }}
+                    {{- $Permalink := $image.resource.RelPermalink -}}
+                    {{- $Width := $image.resource.Width -}}
+                    {{- $Height := $image.resource.Height -}}
+                    {{- if (default true .Page.Site.Params.imageProcessing.cover.enabled) -}}
+                        {{- $thumbnail := $image.resource.Resize "900x" -}}
+                        {{- $Permalink = $thumbnail.RelPermalink -}}
+                        {{- $Width = $thumbnail.Width -}}
+                        {{- $Height = $thumbnail.Height -}}
+                    {{- end -}}
+                    <img src="{{ $Permalink }}" width="{{ $Width }}" height="{{ $Height }}" loading="lazy" alt="{{ .Title }}">
+                {{ else }}
+                    <img src="{{ $image.permalink }}" loading="lazy" alt="{{ .Title }}">
+                {{ end }}
+            {{ else }}
+                {{ with $fallback }}
+                    {{- $thumbnail := .Resize "900x" -}}
+                    <img src="{{ $thumbnail.RelPermalink }}" width="{{ $thumbnail.Width }}" height="{{ $thumbnail.Height }}" loading="lazy" alt="{{ $.Title }}">
+                {{ end }}
+            {{ end }}
+        </a>
+    {{ end }}
+
+    <div class="home-article-card__body">
+        <h2 class="home-article-card__title">
+            <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+        </h2>
+
+        <div class="home-article-card__meta" aria-label="文章信息">
+            {{ if not .Date.IsZero }}
+                <span>{{ partial "helper/icon" "date" }}<time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format (or .Site.Params.dateFormat.published "2006-01-02") }}</time></span>
+            {{ end }}
+            {{ if not .Lastmod.IsZero }}
+                <span>{{ partial "helper/icon" "clock" }}<time datetime="{{ .Lastmod.Format "2006-01-02" }}">{{ .Lastmod.Format (or .Site.Params.dateFormat.published "2006-01-02") }}</time></span>
+            {{ end }}
+            <span>{{ partial "helper/icon" "hash" }}{{ .WordCount }} 字</span>
+            <span>{{ partial "helper/icon" "clock" }}{{ .ReadingTime }} 分钟</span>
+        </div>
+
+        {{- $summary := .Params.description | default (.Summary | plainify) -}}
+        {{ with $summary }}
+            <p class="home-article-card__summary">{{ . | plainify | truncate 120 }}</p>
+        {{ end }}
+
+        {{ if .Params.categories }}
+            <footer class="home-article-card__categories">
+                {{ range (.GetTerms "categories") }}
+                    <a href="{{ .RelPermalink }}" {{ with .Params.style }}style="background-color: {{ .background }}; color: {{ .color }};"{{ end }}>
+                        {{ .LinkTitle }}
+                    </a>
+                {{ end }}
+            </footer>
+        {{ end }}
+    </div>
+</article>

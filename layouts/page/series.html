@@ -1,0 +1,163 @@
+{{ define "body-class" }}article-page series-index-page{{ end }}
+
+{{ define "main" }}
+    {{- $seriesList := site.Data.series | default slice -}}
+    {{- $cards := slice -}}
+
+    {{- range $entry := $seriesList -}}
+        {{- $pages := slice -}}
+        {{- with $entry.category -}}
+            {{- $pages = where $.Site.RegularPages "Params.categories" "intersect" (slice .) -}}
+        {{- end -}}
+        {{- if not $entry.includeHidden -}}
+            {{- $pages = where $pages "Params.hidden" "!=" true -}}
+        {{- end -}}
+        {{- $pages = where $pages "Params.seriesExclude" "!=" true -}}
+
+        {{- if gt (len $pages) 0 -}}
+            {{- $children := slice -}}
+            {{- $childNames := slice -}}
+            {{- with $entry.categories -}}
+                {{- range . -}}
+                    {{- $childTitle := .title -}}
+                    {{- $childPages := where $pages "Params.categories" "intersect" (slice $childTitle) -}}
+                    {{- if gt (len $childPages) 0 -}}
+                        {{- $childTerm := $.Site.GetPage (printf "/categories/%s" $childTitle) -}}
+                        {{- range $taxonomyName, $taxonomy := $.Site.Taxonomies.categories -}}
+                            {{- if and (not $childTerm) (eq $taxonomy.Page.Title $childTitle) -}}
+                                {{- $childTerm = $taxonomy.Page -}}
+                            {{- end -}}
+                        {{- end -}}
+                        {{- $children = $children | append (dict "title" $childTitle "count" (len $childPages) "page" $childTerm "order" (.order | default 999)) -}}
+                        {{- $childNames = $childNames | append $childTitle -}}
+                    {{- end -}}
+                {{- end -}}
+            {{- else -}}
+                {{- with $entry.category -}}
+                    {{- $rootCategory := . -}}
+                    {{- range $pages -}}
+                        {{- range (.Params.categories | default slice) -}}
+                            {{- if and (ne . $rootCategory) (not (in $childNames .)) -}}
+                                {{- $childPages := where $pages "Params.categories" "intersect" (slice .) -}}
+                                {{- $childTerm := $.Site.GetPage (printf "/categories/%s" .) -}}
+                                {{- range $taxonomyName, $taxonomy := $.Site.Taxonomies.categories -}}
+                                    {{- if and (not $childTerm) (eq $taxonomy.Page.Title .) -}}
+                                        {{- $childTerm = $taxonomy.Page -}}
+                                    {{- end -}}
+                                {{- end -}}
+                                {{- $children = $children | append (dict "title" . "count" (len $childPages) "page" $childTerm "order" 999) -}}
+                                {{- $childNames = $childNames | append . -}}
+                            {{- end -}}
+                        {{- end -}}
+                    {{- end -}}
+                {{- end -}}
+            {{- end -}}
+            {{- $children = sort $children "order" "asc" -}}
+            {{- $sortBy := $entry.sortBy | default "date" -}}
+            {{- $sortOrder := $entry.sortOrder | default "desc" -}}
+            {{- $sortedPages := sort $pages "Date" $sortOrder -}}
+            {{- if eq $sortBy "seriesOrder" -}}
+                {{- $sortedPages = sort $pages "Params.seriesOrder" $sortOrder -}}
+            {{- else if eq $sortBy "title" -}}
+                {{- $sortedPages = sort $pages "Title" $sortOrder -}}
+            {{- end -}}
+
+            {{- $dateSortedPages := sort $pages "Date" "desc" -}}
+            {{- $latest := index $dateSortedPages 0 -}}
+            {{- $termPage := false -}}
+            {{- with $entry.category -}}
+                {{- $termPage = $.Site.GetPage (printf "/categories/%s" .) -}}
+                {{- range $name, $taxonomy := $.Site.Taxonomies.categories -}}
+                    {{- if and (not $termPage) (eq $taxonomy.Page.Title .) -}}
+                        {{- $termPage = $taxonomy.Page -}}
+                    {{- end -}}
+                {{- end -}}
+            {{- end -}}
+
+            {{- $cards = $cards | append (dict
+                "entry" $entry
+                "pages" $pages
+                "sortedPages" $sortedPages
+                "latestPages" (first ($entry.preview | default 5) $sortedPages)
+                "latest" $latest
+                "termPage" $termPage
+                "children" $children
+                "count" (len $pages)
+            ) -}}
+        {{- end -}}
+    {{- end -}}
+
+    {{- $totalPosts := 0 -}}
+    {{- range $cards -}}
+        {{- $totalPosts = add $totalPosts .count -}}
+    {{- end -}}
+
+    <div class="series-index">
+        <header class="series-index__hero">
+            <div>
+                <p class="series-index__kicker">Series</p>
+                <h1>文章系列</h1>
+                <p>整理对应的系列文章，方便查阅。</p>
+            </div>
+            <div class="series-index__stats" aria-label="系列统计">
+                <span>{{ len $cards }} 个系列</span>
+                <span>{{ $totalPosts }} 篇文章</span>
+            </div>
+        </header>
+
+        {{ if gt (len $cards) 0 }}
+            <section class="series-index__grid" aria-label="文章系列列表">
+                {{ range $cards }}
+                    {{- $entry := .entry -}}
+                    <article class="series-card" id="{{ anchorize $entry.title }}" style="--series-accent: {{ $entry.color | default "#6aa6ff" }};">
+                        <div class="series-card__top">
+                            <span class="series-card__badge">{{ $entry.badge | default "SER" }}</span>
+                            <div class="series-card__meta">
+                                <span>{{ .count }} 篇</span>
+                                {{ with .latest }}<time datetime="{{ .Date.Format "2006-01-02" }}">更新 {{ .Date.Format "2006-01-02" }}</time>{{ end }}
+                            </div>
+                        </div>
+
+                        <h2 class="series-card__title">{{ $entry.title }}</h2>
+                        <p class="series-card__desc">{{ $entry.description }}</p>
+
+                        {{ if gt (len .children) 0 }}
+                            <div class="series-card__recent" aria-label="{{ $entry.title }} 分类">
+                                {{ range .children }}
+                                    {{- $child := . -}}
+                                    {{ with $child.page }}
+                                        <a class="series-card__post series-card__post--category" href="{{ .RelPermalink }}">
+                                            <span>{{ $child.title }}</span>
+                                            <em>{{ $child.count }} 篇</em>
+                                        </a>
+                                    {{ end }}
+                                {{ end }}
+                            </div>
+                        {{ else }}
+                            <div class="series-card__recent" aria-label="{{ $entry.title }} 文章预览">
+                                {{ range .latestPages }}
+                                    <a class="series-card__post" href="{{ .RelPermalink }}">
+                                        <span>{{ .Title }}</span>
+                                        <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2006-01-02" }}</time>
+                                    </a>
+                                {{ end }}
+                            </div>
+                        {{ end }}
+
+                        <div class="series-card__actions">
+                            {{ with .termPage }}
+                                <a class="series-card__link" href="{{ .RelPermalink }}">查看目录</a>
+                            {{ else }}
+                                <span class="series-card__link series-card__link--disabled">目录未生成</span>
+                            {{ end }}
+                        </div>
+                    </article>
+                {{ end }}
+            </section>
+        {{ else }}
+            <p class="series-index__empty">暂时还没有可展示的系列。</p>
+        {{ end }}
+    </div>
+
+    {{ partialCached "footer/footer" . }}
+{{ end }}

@@ -1,0 +1,42 @@
+- title: 算法
+  badge: Algorithm
+  color: "#5aa8ff"
+  category: 算法
+  description: 记录所学算法的知识点和解题思路。
+  preview: 8
+  sortBy: seriesOrder
+  sortOrder: asc
+  categories:
+    - title: 图论
+      order: 1
+
+- title: 数学
+  badge: Math
+  color: "#f2c94c"
+  category: 数学
+  description: 整理计算机学习中常用的数学基础。
+  preview: 6
+  sortBy: seriesOrder
+  sortOrder: asc
+  categories:
+    - title: 计算机科学中的数学
+      order: 1
+    - title: 单变量微积分
+      order: 2
+    - title: 多变量微积分
+      order: 3
+    - title: 线性代数
+      order: 4
+    - title: 离散数学
+      order: 5
+    - title: 概率论
+      order: 6
+
+- title: 读书
+  badge: Reading
+  color: "#b388ff"
+  category: 读书
+  description: 阅读笔记、摘录和个人理解。
+  preview: 6
+  sortBy: seriesOrder
+  sortOrder: asc

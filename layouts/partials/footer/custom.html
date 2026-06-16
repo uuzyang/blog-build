@@ -20,3 +20,149 @@
 </style>
 {{ end }}
 {{ end }}
+<div class="reading-progress" aria-hidden="true"></div>
+<div class="meteor-field" aria-hidden="true">
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+</div>
+<button class="back-to-top" type="button" aria-label="回到顶部" title="回到顶部">
+    {{ partial "helper/icon" "backTop" }}
+</button>
+<script>
+(() => {
+    const progress = document.querySelector('.reading-progress');
+    const backToTop = document.querySelector('.back-to-top');
+    const article = document.querySelector('.article-content');
+    const toc = document.querySelector('#TableOfContents');
+    const tocWidget = toc?.closest('.widget');
+
+    if (backToTop && tocWidget) {
+        backToTop.classList.add('back-to-top--toc');
+        tocWidget.insertAdjacentElement('afterend', backToTop);
+    }
+
+    function updateProgress() {
+        if (!progress || !article) return;
+        const rect = article.getBoundingClientRect();
+        const start = window.scrollY + rect.top;
+        const total = Math.max(article.scrollHeight - window.innerHeight * 0.55, 1);
+        const current = Math.min(Math.max(window.scrollY - start, 0), total);
+        progress.style.transform = `scaleX(${current / total})`;
+    }
+
+    function updateBackTop() {
+        if (!backToTop) return;
+        backToTop.classList.toggle('is-visible', window.scrollY > 420);
+    }
+
+    function setupToc() {
+        if (!toc || !article) return;
+        const headings = Array.from(article.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]'));
+        const links = Array.from(toc.querySelectorAll('a[href^="#"]'));
+        if (!headings.length || !links.length) return;
+
+        const linkById = new Map();
+        links.forEach((link) => {
+            const id = decodeURIComponent(link.getAttribute('href').slice(1));
+            linkById.set(id, link);
+            const li = link.closest('li');
+            if (li && li.querySelector('ol, ul')) li.classList.add('has-children');
+        });
+
+        function activate(id) {
+            toc.querySelectorAll('li.is-current, li.is-open').forEach((node) => {
+                node.classList.remove('is-current', 'is-open');
+            });
+            const link = linkById.get(id);
+            if (!link) return;
+            const li = link.closest('li');
+            if (!li) return;
+            li.classList.add('is-current');
+            let parent = li.parentElement;
+            while (parent && parent !== toc) {
+                const parentLi = parent.closest('li');
+                if (parentLi) parentLi.classList.add('is-open');
+                parent = parentLi ? parentLi.parentElement : null;
+            }
+            link.scrollIntoView({ block: 'nearest' });
+        }
+
+        const observer = new IntersectionObserver((entries) => {
+            const visible = entries
+                .filter((entry) => entry.isIntersecting)
+                .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+            if (visible[0]) activate(visible[0].target.id);
+        }, { rootMargin: '-18% 0px -68% 0px', threshold: [0, 1] });
+
+        headings.forEach((heading) => observer.observe(heading));
+    }
+
+    backToTop?.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    setupToc();
+    updateProgress();
+    updateBackTop();
+    window.addEventListener('scroll', () => {
+        updateProgress();
+        updateBackTop();
+    }, { passive: true });
+    window.addEventListener('resize', updateProgress);
+})();
+</script>

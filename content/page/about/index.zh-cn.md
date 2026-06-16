@@ -1,5 +1,5 @@
 ---
-title: 关于 | About
+title: About
 date: 2025-09-13
 readingTime: true
 slug: "about"

@@ -1,0 +1,86 @@
+{{ define "body-class" }}article-page projects-page{{ end }}
+
+{{ define "main" }}
+    {{- $projects := site.Data.projects | default slice -}}
+
+    <section class="projects-showcase">
+        <header class="projects-hero">
+            <div>
+                <p>PROJECTS</p>
+                <h1>项目</h1>
+                <span>整理最近做过或参考的其他实验项目和完整作品。</span>
+            </div>
+            <div class="projects-hero__stats" aria-label="项目统计">
+                <span>{{ len $projects }} 个项目</span>
+                <span>
+                    {{- $tagCount := 0 -}}
+                    {{- range $projects -}}
+                        {{- $tagCount = add $tagCount (len (.tags | default slice)) -}}
+                    {{- end -}}
+                    {{ $tagCount }} 个标签
+                </span>
+            </div>
+        </header>
+
+        {{- if $projects -}}
+            <div class="projects-list">
+                {{- range $index, $project := $projects -}}
+                    <article class="project-row{{ if .reverse }} project-row--reverse{{ end }}">
+                        <div class="project-copy">
+                            <div class="project-kicker">
+                                <span>{{ .eyebrow | default (printf "Project %02d" (add $index 1)) }}</span>
+                                {{- with .badge -}}
+                                    <strong>{{ . }}</strong>
+                                {{- end -}}
+                            </div>
+
+                            <h2>
+                                <span class="project-mark project-mark--{{ .icon | default "spark" }}" aria-hidden="true"></span>
+                                {{ .title }}
+                            </h2>
+
+                            <p>{{ .description }}</p>
+
+                            {{- with .tags -}}
+                                <div class="project-tags">
+                                    {{- range . -}}
+                                        <span>{{ . }}</span>
+                                    {{- end -}}
+                                </div>
+                            {{- end -}}
+
+                            {{- with .links -}}
+                                <div class="project-actions">
+                                    {{- range . -}}
+                                        <a class="project-button{{ if .primary }} project-button--primary{{ end }}" href="{{ .url | default "#" }}">
+                                            {{- with .icon -}}{{ partial "helper/icon" . }}{{- end -}}
+                                            <span>{{ .label }}</span>
+                                        </a>
+                                    {{- end -}}
+                                </div>
+                            {{- end -}}
+                        </div>
+
+                        <div class="project-terminal" aria-label="{{ .title }} 技术栈片段">
+                            <div class="project-terminal__bar">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <em>{{ .filename | default "project.ts" }}</em>
+                            </div>
+                            <ol>
+                                {{- range .code -}}
+                                    <li><code>{{ . }}</code></li>
+                                {{- end -}}
+                            </ol>
+                        </div>
+                    </article>
+                {{- end -}}
+            </div>
+        {{- else -}}
+            <p class="series-index__empty">暂时还没有项目。</p>
+        {{- end -}}
+    </section>
+
+    {{ partialCached "footer/footer" . }}
+{{ end }}

@@ -1,0 +1,46 @@
+{{- $ThemeVersion := "3.26.0" -}}
+{{- $pages := where .Site.RegularPages "Type" "in" .Site.Params.mainSections -}}
+{{- $notHidden := where .Site.RegularPages "Params.hidden" "!=" true -}}
+{{- $posts := $pages | intersect $notHidden -}}
+{{- $wordCount := 0 -}}
+{{- range $posts -}}
+    {{- $wordCount = add $wordCount .WordCount -}}
+{{- end -}}
+{{- $wordText := printf "%d" $wordCount -}}
+{{- if ge $wordCount 10000 -}}
+    {{- $wordText = printf "%.2f万" (div (float $wordCount) 10000.0) -}}
+{{- end -}}
+{{- $sinceYear := .Site.Params.footer.since | default (int (now.Format "2006")) -}}
+{{- $since := time (printf "%d-01-01T00:00:00+08:00" $sinceYear) -}}
+{{- $seconds := sub now.Unix $since.Unix -}}
+{{- $days := div $seconds 86400 -}}
+{{- $hours := div (mod $seconds 86400) 3600 -}}
+{{- $minutes := div (mod $seconds 3600) 60 -}}
+
+<footer class="site-footer">
+    <section class="site-footer__stats">
+        <span>本博客已稳定运行 <strong>{{ $days }}天{{ $hours }}小时{{ $minutes }}分钟</strong></span>
+        <span>发表了 <strong>{{ len $posts }}</strong> 篇文章 · 总计 <strong>{{ $wordText }}</strong> 字</span>
+    </section>
+
+    <section class="copyright">
+        &copy;
+        {{ if and (.Site.Params.footer.since) (ne .Site.Params.footer.since (int (now.Format "2006"))) }}
+            {{ .Site.Params.footer.since }} -
+        {{ end }}
+        {{ now.Format "2006" }} {{ default .Site.Title .Site.Copyright }}
+    </section>
+
+    <section class="powerby">
+        {{ with .Site.Params.footer.customText }}
+            {{ . | safeHTML }} <br/>
+        {{ end }}
+
+        {{- $Generator := `<a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a>` -}}
+        {{- $Theme := printf `<b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="%s">Stack</a></b>` $ThemeVersion -}}
+        {{- $DesignedBy := `<a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>` -}}
+
+        {{ T "footer.builtWith" (dict "Generator" $Generator) | safeHTML }} <br />
+        {{ T "footer.designedBy" (dict "Theme" $Theme "DesignedBy" $DesignedBy) | safeHTML }}
+    </section>
+</footer>

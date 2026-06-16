@@ -1,0 +1,13 @@
+{{- $context := .Context -}}
+{{- $folder := .Folder | default "background" -}}
+{{- $images := resources.Match (printf "%s/*.{jpg,jpeg,png,webp,avif}" $folder) -}}
+{{- $fallback := false -}}
+{{- if gt (len $images) 0 -}}
+    {{- $seed := add (len $context.RelPermalink) (mul (len $context.Title) 7) -}}
+    {{- if not $context.Date.IsZero -}}
+        {{- $seed = add $seed (mod $context.Date.Unix 997) -}}
+    {{- end -}}
+    {{- $index := mod $seed (len $images) -}}
+    {{- $fallback = index $images $index -}}
+{{- end -}}
+{{- return $fallback -}}

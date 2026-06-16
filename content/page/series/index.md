@@ -1,5 +1,5 @@
 ---
-title: "系列 | Series"
+title: "Series"
 date: 2026-06-14
 layout: "series"
 slug: "series"

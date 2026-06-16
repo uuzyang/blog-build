@@ -1,0 +1,84 @@
+{{- $current := . -}}
+{{- $matchedEntry := false -}}
+{{- $matchedPages := slice -}}
+
+{{- range site.Data.series -}}
+    {{- if not $matchedEntry -}}
+        {{- $entry := . -}}
+        {{- with $entry.category -}}
+            {{- if in ($current.Params.categories | default slice) . -}}
+                {{- $matchedEntry = $entry -}}
+                {{- $matchedPages = where $current.Site.RegularPages "Params.categories" "intersect" (slice .) -}}
+            {{- end -}}
+        {{- end -}}
+    {{- end -}}
+{{- end -}}
+
+{{- if and $matchedEntry (gt (len $matchedPages) 1) -}}
+    {{- if not $matchedEntry.includeHidden -}}
+        {{- $matchedPages = where $matchedPages "Params.hidden" "!=" true -}}
+    {{- end -}}
+    {{- $matchedPages = where $matchedPages "Params.seriesExclude" "!=" true -}}
+
+    {{- $orderedPages := slice -}}
+    {{- $sortBy := $matchedEntry.sortBy | default "date" -}}
+    {{- $sortOrder := $matchedEntry.sortOrder | default "desc" -}}
+
+    {{- if gt (len ($matchedEntry.categories | default slice)) 0 -}}
+        {{- range $matchedEntry.categories -}}
+            {{- $categoryTitle := .title -}}
+            {{- $categoryPages := where $matchedPages "Params.categories" "intersect" (slice $categoryTitle) -}}
+            {{- $categoryPages = sort $categoryPages "Date" "desc" -}}
+            {{- if eq $sortBy "seriesOrder" -}}
+                {{- $categoryPages = sort $categoryPages "Params.seriesOrder" $sortOrder -}}
+            {{- else if eq $sortBy "title" -}}
+                {{- $categoryPages = sort $categoryPages "Title" $sortOrder -}}
+            {{- end -}}
+            {{- range $categoryPages -}}
+                {{- $orderedPages = $orderedPages | append . -}}
+            {{- end -}}
+        {{- end -}}
+    {{- else -}}
+        {{- $orderedPages = sort $matchedPages "Date" $sortOrder -}}
+        {{- if eq $sortBy "seriesOrder" -}}
+            {{- $orderedPages = sort $matchedPages "Params.seriesOrder" $sortOrder -}}
+        {{- else if eq $sortBy "title" -}}
+            {{- $orderedPages = sort $matchedPages "Title" $sortOrder -}}
+        {{- end -}}
+    {{- end -}}
+
+    {{- $prevPage := false -}}
+    {{- $nextPage := false -}}
+    {{- range $index, $page := $orderedPages -}}
+        {{- if eq $page.RelPermalink $current.RelPermalink -}}
+            {{- if gt $index 0 -}}
+                {{- $prevPage = index $orderedPages (sub $index 1) -}}
+            {{- end -}}
+            {{- if lt (add $index 1) (len $orderedPages) -}}
+                {{- $nextPage = index $orderedPages (add $index 1) -}}
+            {{- end -}}
+        {{- end -}}
+    {{- end -}}
+
+    {{- if or $prevPage $nextPage -}}
+        <nav class="series-article-nav" aria-label="{{ $matchedEntry.title }} 相邻文章">
+            {{- with $prevPage -}}
+                <a class="series-article-nav__link series-article-nav__link--prev" href="{{ .RelPermalink }}">
+                    <span>上一篇</span>
+                    <strong>{{ .Title }}</strong>
+                </a>
+            {{- else -}}
+                <span class="series-article-nav__link series-article-nav__link--empty"></span>
+            {{- end -}}
+
+            {{- with $nextPage -}}
+                <a class="series-article-nav__link series-article-nav__link--next" href="{{ .RelPermalink }}">
+                    <span>下一篇</span>
+                    <strong>{{ .Title }}</strong>
+                </a>
+            {{- else -}}
+                <span class="series-article-nav__link series-article-nav__link--empty"></span>
+            {{- end -}}
+        </nav>
+    {{- end -}}
+{{- end -}}

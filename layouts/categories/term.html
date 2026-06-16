@@ -1,0 +1,174 @@
+{{ define "body-class" }}article-page series-detail-page{{ end }}
+
+{{ define "main" }}
+    {{- $entry := false -}}
+    {{- $isSeriesRoot := false -}}
+    {{- range site.Data.series -}}
+        {{- if or (eq .title $.Title) (eq .category $.Title) -}}
+            {{- $entry = . -}}
+            {{- $isSeriesRoot = true -}}
+        {{- end -}}
+    {{- end -}}
+
+    {{- $pages := .Pages -}}
+    {{- if $entry -}}
+        {{- if not $entry.includeHidden -}}
+            {{- $pages = where $pages "Params.hidden" "!=" true -}}
+        {{- end -}}
+        {{- $pages = where $pages "Params.seriesExclude" "!=" true -}}
+    {{- end -}}
+
+    {{- $sortBy := "date" -}}
+    {{- $sortOrder := "desc" -}}
+    {{- if $entry -}}
+        {{- $sortBy = $entry.sortBy | default "date" -}}
+        {{- $sortOrder = $entry.sortOrder | default "desc" -}}
+    {{- end -}}
+
+    {{- $sortedPages := sort $pages "Date" $sortOrder -}}
+    {{- if eq $sortBy "seriesOrder" -}}
+        {{- $sortedPages = sort $pages "Params.seriesOrder" $sortOrder -}}
+    {{- else if eq $sortBy "title" -}}
+        {{- $sortedPages = sort $pages "Title" $sortOrder -}}
+    {{- end -}}
+
+    {{- $children := slice -}}
+    {{- $childNames := slice -}}
+    {{- if and $entry $isSeriesRoot -}}
+        {{- with $entry.categories -}}
+            {{- range . -}}
+                {{- $childTitle := .title -}}
+                {{- $childPages := where $pages "Params.categories" "intersect" (slice $childTitle) -}}
+                {{- if gt (len $childPages) 0 -}}
+                    {{- $childTerm := $.Site.GetPage (printf "/categories/%s" $childTitle) -}}
+                    {{- range $taxonomyName, $taxonomy := $.Site.Taxonomies.categories -}}
+                        {{- if and (not $childTerm) (eq $taxonomy.Page.Title $childTitle) -}}
+                            {{- $childTerm = $taxonomy.Page -}}
+                        {{- end -}}
+                    {{- end -}}
+                    {{- $children = $children | append (dict "title" $childTitle "count" (len $childPages) "page" $childTerm "latest" (index (sort $childPages "Date" "desc") 0) "order" (.order | default 999)) -}}
+                    {{- $childNames = $childNames | append $childTitle -}}
+                {{- end -}}
+            {{- end -}}
+        {{- else -}}
+            {{- $rootCategory := $entry.category -}}
+            {{- range $pages -}}
+                {{- range (.Params.categories | default slice) -}}
+                    {{- if and (ne . $rootCategory) (not (in $childNames .)) -}}
+                        {{- $childPages := where $pages "Params.categories" "intersect" (slice .) -}}
+                        {{- $childTerm := $.Site.GetPage (printf "/categories/%s" .) -}}
+                        {{- range $taxonomyName, $taxonomy := $.Site.Taxonomies.categories -}}
+                            {{- if and (not $childTerm) (eq $taxonomy.Page.Title .) -}}
+                                {{- $childTerm = $taxonomy.Page -}}
+                            {{- end -}}
+                        {{- end -}}
+                        {{- $children = $children | append (dict "title" . "count" (len $childPages) "page" $childTerm "latest" (index (sort $childPages "Date" "desc") 0) "order" 999) -}}
+                        {{- $childNames = $childNames | append . -}}
+                    {{- end -}}
+                {{- end -}}
+            {{- end -}}
+        {{- end -}}
+        {{- $children = sort $children "order" "asc" -}}
+    {{- end -}}
+
+    {{- $accent := .Params.style.background | default "#6aa6ff" -}}
+    {{- if $entry -}}
+        {{- $accent = $entry.color | default $accent -}}
+    {{- end -}}
+
+    {{- $fallbackImage := partial "helper/random-fallback-image" (dict "Context" . "Folder" "background") -}}
+    {{- $termImage := false -}}
+    {{- with .Params.image -}}
+        {{- $termImage = $.Resources.GetMatch . -}}
+    {{- end -}}
+    {{- if not $termImage -}}
+        {{- with .Resources.ByType "image" -}}
+            {{- $termImage = index . 0 -}}
+        {{- end -}}
+    {{- end -}}
+
+    <div class="series-detail">
+        <article class="series-detail__panel{{ if not (gt (len $children) 0) }} series-detail__panel--category{{ end }}" style="--series-accent: {{ $accent }};">
+            <header class="series-detail__header{{ if not (gt (len $children) 0) }} series-detail__header--category{{ end }}">
+                {{ if not (gt (len $children) 0) }}
+                    <div class="series-detail__cover">
+                        {{ if $termImage }}
+                            {{- $cover := $termImage.Fill "760x430" -}}
+                            <img src="{{ $cover.RelPermalink }}" width="{{ $cover.Width }}" height="{{ $cover.Height }}" loading="lazy" alt="{{ .Title }}">
+                        {{ else }}
+                            {{ with $fallbackImage }}
+                                {{- $cover := .Fill "760x430" -}}
+                                <img src="{{ $cover.RelPermalink }}" width="{{ $cover.Width }}" height="{{ $cover.Height }}" loading="lazy" alt="{{ $.Title }}">
+                            {{ end }}
+                        {{ end }}
+                    </div>
+                {{ end }}
+                <div class="series-detail__intro">
+                    <p class="series-detail__kicker">
+                        {{ if $entry }}{{ $entry.badge | default "SER" }}{{ else }}Category{{ end }} ·
+                        {{ if gt (len $children) 0 }}{{ len $children }} 个目录 · {{ len $sortedPages }} 篇{{ else }}{{ len $sortedPages }} 篇{{ end }}
+                    </p>
+                    <h1>{{ if $entry }}{{ $entry.title }}{{ else }}{{ .Title }}{{ end }}</h1>
+                    {{ if $entry }}
+                        <p>{{ $entry.description }}</p>
+                    {{ else }}
+                        {{ with .Params.description }}
+                            <p>{{ . }}</p>
+                        {{ end }}
+                    {{ end }}
+                    {{ if not (gt (len $children) 0) }}
+                        <span class="series-detail__count">{{ len $sortedPages }} 篇文章</span>
+                    {{ end }}
+                </div>
+            </header>
+
+            {{ if gt (len $children) 0 }}
+                <div class="series-subcategory-grid" aria-label="{{ .Title }} 二级目录">
+                    {{ range $children }}
+                        {{- $child := . -}}
+                        {{ with $child.page }}
+                            <a class="series-subcategory-card" href="{{ .RelPermalink }}">
+                                <span>{{ $child.title }}</span>
+                                <strong>{{ $child.count }} 篇文章</strong>
+                                {{ with $child.latest }}<time datetime="{{ .Date.Format "2006-01-02" }}">更新 {{ .Date.Format "2006-01-02" }}</time>{{ end }}
+                            </a>
+                        {{ end }}
+                    {{ end }}
+                </div>
+            {{ else if gt (len $sortedPages) 0 }}
+                <div class="category-article-grid" aria-label="{{ .Title }} 完整目录">
+                    {{ range $sortedPages }}
+                        {{- $page := . -}}
+                        {{- $pageImage := partialCached "helper/image" (dict "Context" . "Type" "articleList") .RelPermalink "articleList" -}}
+                        <a class="category-article-card" href="{{ .RelPermalink }}">
+                            <span class="category-article-card__text">
+                                <strong>{{ .Title }}</strong>
+                                <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2006-01-02" }}</time>
+                            </span>
+                            <span class="category-article-card__thumb">
+                                {{ if $pageImage.exists }}
+                                    {{ if $pageImage.resource }}
+                                        {{- $thumb := $pageImage.resource.Fill "120x120" -}}
+                                        <img src="{{ $thumb.RelPermalink }}" width="{{ $thumb.Width }}" height="{{ $thumb.Height }}" loading="lazy" alt="{{ .Title }}">
+                                    {{ else }}
+                                        <img src="{{ $pageImage.permalink }}" loading="lazy" alt="{{ .Title }}">
+                                    {{ end }}
+                                {{ else }}
+                                    {{- $pageFallback := partial "helper/random-fallback-image" (dict "Context" . "Folder" "background") -}}
+                                    {{ with $pageFallback }}
+                                        {{- $thumb := .Fill "120x120" -}}
+                                        <img src="{{ $thumb.RelPermalink }}" width="{{ $thumb.Width }}" height="{{ $thumb.Height }}" loading="lazy" alt="{{ $page.Title }}">
+                                    {{ end }}
+                                {{ end }}
+                            </span>
+                        </a>
+                    {{ end }}
+                </div>
+            {{ else }}
+                <p class="series-index__empty">这个系列暂时还没有文章。</p>
+            {{ end }}
+        </article>
+    </div>
+
+    {{ partialCached "footer/footer" . }}
+{{ end }}
