@@ -1,9 +1,9 @@
 ---
 title: "单变量微积分入门"
-date: 2026-06-15
+date: 2025-06-15
+lastmod: 2026-06-15
 description: "用变化率和累积量理解导数与积分。"
 slug: "single-variable-calculus"
-image: "4.png"
 categories:
     - 数学
     - 单变量微积分
